@@ -2,6 +2,8 @@
  * 2024 PLAY Piano Capstone Group
  */
 
+#pragma once
+
 #include "playp_base/return_code.h"
 #include "key_control.h"
 
