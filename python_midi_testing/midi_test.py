@@ -7,7 +7,7 @@ import time
 
 SOUND_PATH = 'python_midi_testing/[GD] Clean Concert Grand.sf2'
 # download from https://musical-artifacts.com/artifacts/3212, was too big to add to github
-PIANO_NAME = 'Impact GX61 MIDI2'
+PIANO_NAME = 'Impact GX61 MIDI1'
 # OUTPUT = 'FluidSynth virtual port (77349)'
 
 # Attempted to pass the midi through so the piano could still be used with an external controller,
@@ -26,7 +26,7 @@ class MidiInterface():
 
     def __init__(self, soundfont_path = SOUND_PATH, piano_name = PIANO_NAME):
         self.fs = Synth()
-        self.fs.start(driver='coreaudio')  # use coreaudio driver
+        self.fs.start(driver='coreaudio')  # use coreaudio driver. Might be mac specific
         self.sfid = self.fs.sfload(soundfont_path)
         self.fs.program_select(0, self.sfid, 0, 0)
         self.soundfont_path = soundfont_path
@@ -39,7 +39,7 @@ class MidiInterface():
                 for msg in self.input_port.iter_pending():
                     if msg.type == 'note_on':
                         # Play the note with FluidSynth
-                        self.fs.noteon(0, msg.note, 127)
+                        self.fs.noteon(0, msg.note, 127)#msg.velocity) # using 127 becuase using the key velocity directly was too quiet 
 
                     elif msg.type == 'note_off':
                         # Stop the note with FluidSynth
