@@ -4,11 +4,15 @@ from mido.backends.rtmidi import Input, Output
 from fluidsynth import Synth
 import time
 
+
 SOUND_PATH = 'python_midi_testing/[GD] Clean Concert Grand.sf2'
 # download from https://musical-artifacts.com/artifacts/3212, was too big to add to github
-PIANO_NAME = 'Impact GX61 MIDI1'
+PIANO_NAME = 'Impact GX61 MIDI2'
 # OUTPUT = 'FluidSynth virtual port (77349)'
 
+# Attempted to pass the midi through so the piano could still be used with an external controller,
+# Not sure I did it right, couldn't find an output port to send to. Instead its trying to send back 
+# to the piano, not sure why.
 
 class MidiInterface():
 
