@@ -5,6 +5,7 @@ from fluidsynth import Synth
 import time
 
 SOUND_PATH = 'python_midi_testing/[GD] Clean Concert Grand.sf2'
+# download from https://musical-artifacts.com/artifacts/3212, was too big to add to github
 PIANO_NAME = 'Impact GX61 MIDI1'
 # OUTPUT = 'FluidSynth virtual port (77349)'
 
