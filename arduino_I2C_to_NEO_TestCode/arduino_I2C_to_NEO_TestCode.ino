@@ -5,16 +5,16 @@
   TO UPLOAD AND PROCESS SONG:
     - Send MIDI data over I2C
         MESSAGE FORM: 
-            1) Begin by sending a string "Start Preload" over I2C
+            1) Begin by sending a string "Start PreloadXX" over I2C
             2) Then send a string line of 62 values, representing keys 0-61 and the timestamp in the form:
                 - each key is represented by either a 0 or 1 to show if the key is turned on
                 - each value is seperated by a single space
                 - the timestamp is the final value
-                - after each line/timestamp, end the line with 'x'
-              EXAMPLE: "Start Preload [61 zeroes or ones seperated by a space]*space*[timestamp]x...
-                                      [61 zeroes or ones seperated by a space]*space*[timestamp1]x...
-                                      [61 zeroes or ones seperated by a space]*space*[last-timestamp]x
-                        End Preload"
+                - after each line/timestamp, end the line with 'XX'
+              EXAMPLE: "Start PreloadXX[61 zeroes or ones seperated by a space]*space*[timestamp]XX...
+                                      [61 zeroes or ones seperated by a space]*space*[timestamp1]XX...
+                                      [61 zeroes or ones seperated by a space]*space*[last-timestamp]XX
+                        End PreloadXX"
             3) End song transfer by sending string "End Preload" over I2C
             4) Arduino will save and process the data to create a cascading note effect
 
@@ -78,7 +78,7 @@ void loop() {
 void receiveEvent(int howMany) {
     while (Wire.available()) {
         char c = Wire.read();
-        if (c == 'x') {
+        if (c == 'XX') {
             processBuffer();
             I2C_Buffer = ""; // Clear buffer for next line
         } else {
@@ -88,10 +88,10 @@ void receiveEvent(int howMany) {
 }
 
 void processBuffer() {
-    if (I2C_Buffer == "Start Preload") {
+    if (I2C_Buffer == "Start PreloadXX") {
         is_Preloading = true;
         row_Index = 0;
-    } else if (I2C_Buffer == "End Preload") {
+    } else if (I2C_Buffer == "End PreloadXX") {
         is_Preloading = false;
         //song is stored
     } else if (is_Preloading) {
@@ -100,7 +100,7 @@ void processBuffer() {
 }
 
 void parseAndStoreData(String data) {
-    if (data.endsWith("x")) {
+    if (data.endsWith("XX")) {
         data.remove(data.length() - 2); // Remove "XX"
 
         int spaceIndex;
