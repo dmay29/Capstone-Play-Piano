@@ -15,15 +15,17 @@
                                       [61 zeroes or ones seperated by a space]*space*[timestamp1]XX...
                                       [61 zeroes or ones seperated by a space]*space*[last-timestamp]XX
                         End PreloadXX"
-            3) End song transfer by sending string "End Preload" over I2C
+            3) End song transfer by sending string "End PreloadXX" over I2C
             4) Arduino will save and process the data to create a cascading note effect
 
-  TO BEGIN SONG:
-    - Send a string "Start Song [time-scale * 10]" over I2C
-      1) For example a song at regular speed would require: "Start Song 10"
-      2) Half-speed would require: "Start Song 5"
-      3) Double-speed would require: "Start Song 20"
+  TO BEGIN LEARNING/PLAY-ALONG SONG:
+    - Send a string "Start SongXX [time-scale * 10]XX" over I2C
+      1) For example a song at regular speed would require: "Start SongXX 10XX"
+      2) Half-speed would require: "Start SongXX 5XX"
+      3) Double-speed would require: "Start SongXX 20XX"
 
+  TO BEGIN Freeplay:
+    - Send a string "Free PlayXX" over I2C
 */
 
 #include <Wire.h>
@@ -91,11 +93,19 @@ void processBuffer() {
     if (I2C_Buffer == "Start PreloadXX") {
         is_Preloading = true;
         row_Index = 0;
-    } else if (I2C_Buffer == "End PreloadXX") {
+    } 
+    else if (I2C_Buffer == "End PreloadXX") {
         is_Preloading = false;
         //song is stored
-    } else if (is_Preloading) {
+    } 
+    else if (is_Preloading) {
         parseAndStoreData(I2C_Buffer);
+    }
+    else if (I2C_Buffer == "Start SongXX") {
+        startLearning();
+    }    
+    else if (I2C_Buffer == "Free PlayXX") {
+        freePlayMode();
     }
 }
 
@@ -136,3 +146,10 @@ void printFirstXRows(int x) {
     }
 }
 
+void startLearning(){
+
+}
+
+void freePlayMode(){
+
+}
