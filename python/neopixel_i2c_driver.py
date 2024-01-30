@@ -43,3 +43,47 @@ Would set the first 3 pixels to be red, green, blue
 
 
 '''
+
+import smbus2
+from smbus2 import i2c_msg
+from time import sleep
+
+bus = smbus2.SMBus(1)
+I2C_ADDR = 0x27
+
+'''
+Write a message over i2c
+
+- addr(int): i2c address to send to
+- data(list[byte]): list of 8 bit data to send
+
+'''
+def i2c_write(addr, data):
+    msg = i2c_msg.write(addr,data)
+    bus.i2c_rdwr(msg)
+    sleep(.001)
+
+'''
+Write a compose message over i2c
+
+- addr(int): i2c address to send to
+- notes(12 bit int): 12 bit number, one bit per note in octave
+
+'''
+def compose(addr, notes):
+    data = [notes >> 8, notes & 0xff]
+    i2c_write(addr, data)
+
+def main():
+    compose(I2C_ADDR, 0b100000000000)
+    compose(I2C_ADDR, 0b000000010000)
+    compose(I2C_ADDR, 0b000010000000)
+    compose(I2C_ADDR, 0b000000000010)
+    compose(I2C_ADDR, 0b001000000000)
+    compose(I2C_ADDR, 0b000000000001)
+    compose(I2C_ADDR, 0b000000000000)
+    compose(I2C_ADDR, 0b000000000000)
+    compose(I2C_ADDR, 0b000000000000)
+    compose(I2C_ADDR, 0b000000000000)
+    compose(I2C_ADDR, 0b000000000000)
+    compose(I2C_ADDR, 0b000000000000)
