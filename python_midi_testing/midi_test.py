@@ -1,7 +1,7 @@
 import mido
 from mido import MidiFile, MidiTrack, Message
 from mido.backends.rtmidi import Input, Output
-from fluidsynth import Synth
+# from fluidsynth import Synth
 import time
 
 
@@ -18,32 +18,32 @@ class MidiInterface():
 
      # FluidSynth setup
     soundfont_path:str = None
-    fs: Synth = None
+    # fs: Synth = None
 
     input_port:Input = None
     output_port:Output = None
     
 
     def __init__(self, soundfont_path = SOUND_PATH, piano_name = PIANO_NAME):
-        self.fs = Synth()
-        self.fs.start(driver='coreaudio')  # use coreaudio driver. Might be mac specific
-        self.sfid = self.fs.sfload(soundfont_path)
-        self.fs.program_select(0, self.sfid, 0, 0)
-        self.soundfont_path = soundfont_path
+        # self.fs = Synth()
+        # self.fs.start(driver='coreaudio')  # use coreaudio driver. Might be mac specific
+        # self.sfid = self.fs.sfload(soundfont_path)
+        # self.fs.program_select(0, self.sfid, 0, 0)
+        # self.soundfont_path = soundfont_path
         self.input_port:Input = mido.open_input(piano_name)
-        self.output_port:Output = mido.open_output()
+        # self.output_port:Output = mido.open_output()
 
     def run(self):
         try:
             while True:
                 for msg in self.input_port.iter_pending():
-                    if msg.type == 'note_on':
-                        # Play the note with FluidSynth
-                        self.fs.noteon(0, msg.note, 127)#msg.velocity) # using 127 becuase using the key velocity directly was too quiet 
+                    # if msg.type == 'note_on':
+                    #     # Play the note with FluidSynth
+                    #     self.fs.noteon(0, msg.note, 127)#msg.velocity) # using 127 becuase using the key velocity directly was too quiet 
 
-                    elif msg.type == 'note_off':
-                        # Stop the note with FluidSynth
-                        self.fs.noteoff(0, msg.note)
+                    # elif msg.type == 'note_off':
+                    #     # Stop the note with FluidSynth
+                    #     self.fs.noteoff(0, msg.note)
                     msg: Message
                     # Parse MIDI message
                     if hasattr(msg, 'note'):
@@ -53,7 +53,7 @@ class MidiInterface():
                         print(f'{msg.type}, {msg}')
 
                     # Pass the MIDI message to the output port
-                    self.output_port.send(msg)
+                    # self.output_port.send(msg)
 
                     
                 
@@ -62,7 +62,7 @@ class MidiInterface():
             pass
         finally:
             self.input_port.close()
-            self.output_port.close()
+            # self.output_port.close()
 
 
     
