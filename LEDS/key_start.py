@@ -30,6 +30,12 @@ def dimmer(color, brightness):
     return [int(max(min(i*brightness,255),0)) for i in color]
 
 class PianoKeyLEDs:
+    '''
+    LED controller for one key,
+    Running begin starts a waterfall
+    It moves down one on each advance call
+    doesn't look great tbh. 
+    '''
     def __init__(self,above_key_indexes:list, key_indexes:list, color:list):
         self.above_key_indexes = list(above_key_indexes)
         self.key_indexes = list(key_indexes)
@@ -60,6 +66,15 @@ class PianoKeyLEDs:
 
 
 class PianoKeyLEDsRealTime:
+
+    '''
+    LED controller for one key,
+    Running begin starts a waterfall
+    Calling refresh recalculates the brigthness of each pixel based on the current time
+    Right now can only handle one falling pixel at time (starting a new fall would stop the previous)
+    Looks pretty fluid 
+    '''
+
     width = 4
     A = (2/width)**4
     B = 2*(2/width)**2
@@ -94,8 +109,21 @@ class PianoKeyLEDsRealTime:
         self.speed = len(self.pixel_array)/fall_time
         self.start_time = time()
 
+    def calc_brightness(self, x):
+        '''
+        Where the magic happens.
+        This sort of approximates one cycle of a cosine wave. 
+        Makes the pixels transition smoothly
+        '''
+        if abs(x) <= self.width/2:
+            return self.A*(x**4)-self.B*(x**2)+1
+        else:
+            return 0
 
     def waterfall_refresh(self):
+        '''
+        Based on current time calculate every pixels brightness
+        '''
         now = self.time_since_start
         if now is None:
             return
@@ -103,16 +131,13 @@ class PianoKeyLEDsRealTime:
         else:
             now *= self.speed
         for i,pixel in enumerate(self.pixel_array):
-            x = now - i
-            if abs(x) <= self.width/2:
-                self.pixel_array[i] = self.A*(x**4)-self.B*(x**2)+1
-            else:
-                self.pixel_array[i] = 0
+            x = now -i
+            self.pixel_array[i] = self.calc_brightness(x)
         self.set_pixels()
 
 
 
-def main():      
+def main():    
     keys = [
         PianoKeyLEDsRealTime(range(48,41,-1),[49,50], red),
         PianoKeyLEDsRealTime(range(41,34,-1),[51,52], green),
@@ -126,8 +151,10 @@ def main():
                 [11,[0,1]],
                 [15,[0,0]],]
     notes_sequence = []
-
+    prev_time = time()
     while True:
+        print(time()-prev_time)
+        prev_time = time()
         if not notes_sequence:
             notes_sequence = sequence.copy()
             start = time()

@@ -4,7 +4,23 @@ from mido.backends.rtmidi import Input, Output
 # from fluidsynth import Synth
 import time
 
+'''
+fluid synth can be run from command line, will add in some sort of call here
 
+for now run: fluidsynth -a alsa -g 5 /usr/share/sounds/sf2/FluidR3_GM.sf2
+in new terminal: aconnect -o
+  this returns something like:
+    client 14: 'Midi Through' [type=kernel]
+        0 'Midi Through Port-0'
+    client 20: 'Impact GX61' [type=kernel,card=1] <---- Get the client number from this line
+        0 'Impact GX61 MIDI1'
+    client 128: 'FLUID Synth (1527)' [type=user,pid=1527] <----- And this line
+        0 'Synth input port (1527:0)'
+
+Run: aconnect 20:0 128:0
+Replace the 20 and 128 with the client IDS you saw
+   
+'''
 SOUND_PATH = 'python_midi_testing/[GD] Clean Concert Grand.sf2'
 # download from https://musical-artifacts.com/artifacts/3212, was too big to add to github
 PIANO_NAME = 'Impact GX61 MIDI1'
