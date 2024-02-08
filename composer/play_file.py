@@ -3,7 +3,7 @@ from utils.midi_and_key_converter import midiToKey
 from utils.cli_piano import CLIPiano
 
 from time import time
-from utils.key_start import pixels, red, PianoKeyLEDsRealTime
+from utils.key_led_control import pixels, red, PianoKeyLEDsRealTime, LEDPiano
 
 
 class MidiInterface():
@@ -13,6 +13,7 @@ class MidiInterface():
     def __init__(self):
         self.midi_file = mido.MidiFile("sound_files/mary_little_lamb.mid")
         self.cli_piano = CLIPiano(61)
+        self.led_piano = LEDPiano(61)
         self.active_keys = []
 
     def run(self):
@@ -30,6 +31,7 @@ class MidiInterface():
                         time_step = time_step + 1
                         self.active_keys.append(midiToKey(msg.note))
                         self.cli_piano.renderPiano(self.active_keys)
+                        self.led_piano.renderPiano(self.active_keys)
                         print('')
 
                     elif msg.type == 'note_off':
