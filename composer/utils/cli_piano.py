@@ -21,7 +21,7 @@ class CLIPiano():
             if (self.activeKeys.count(i) != 0 and black_key_mask[i % 12]):
                 output = black_key_chars[i % 12]
                 output = output.replace(output[0], '_')
-                output = output.replace(output[1], '_')
+                output = output.replace(output[1], ' ')
                 print(f'\033[92m{output}\033[0m', end='')
             else:
                 print(black_key_chars[i % 12], end='')
