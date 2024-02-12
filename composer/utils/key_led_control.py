@@ -7,7 +7,7 @@ from threading import Thread
 BPM = 300
 DELAY = 60/BPM
 
-NUM_LEDS = 54
+NUM_LEDS = 85
 FULL = 1
 DIM = .25
 VERY_DIM = .05
@@ -141,47 +141,63 @@ class LEDPiano:
     numKeys: int
     # TODO: Generate this with code
     keys: List[PianoKeyLEDsRealTime] = [
-        PianoKeyLEDsRealTime(range(48,41,-1), [0, 1, 2], red),
-        PianoKeyLEDsRealTime(range(41,34,-1), [3, 4], red),
-        PianoKeyLEDsRealTime(range(41,34,-1), [5, 6, 7], red),
-        PianoKeyLEDsRealTime(range(41,34,-1), [8, 9], red),
-        PianoKeyLEDsRealTime(range(41,34,-1), [10, 11, 12], red),
-        PianoKeyLEDsRealTime(range(41,34,-1), [13, 14, 15], red),
-        PianoKeyLEDsRealTime(range(41,34,-1), [16, 17], red),
-        PianoKeyLEDsRealTime(range(41,34,-1), [18, 19, 20], red),
-        PianoKeyLEDsRealTime(range(41,34,-1), [21, 22], red),
-        PianoKeyLEDsRealTime(range(41,34,-1), [23, 24, 25], red),
-        PianoKeyLEDsRealTime(range(41,34,-1), [26, 27], red),
-        PianoKeyLEDsRealTime(range(41,34,-1), [28, 29, 30], red),
+        PianoKeyLEDsRealTime(range(79,72,-1), [0, 1, 2], red),
+        PianoKeyLEDsRealTime(range(72,65,-1), [3, 4], red),
+        PianoKeyLEDsRealTime(range(65,58,-1), [5, 6, 7], red),
+        PianoKeyLEDsRealTime(range(58,51,-1), [8, 9], red),
+        PianoKeyLEDsRealTime(range(51,44,-1), [10, 11, 12], red),
+        PianoKeyLEDsRealTime(range(44,37,-1), [13, 14, 15], red),
+        PianoKeyLEDsRealTime(range(37,30,-1), [16, 17], red),
+        PianoKeyLEDsRealTime(range(37,30,-1), [18, 19, 20], red),
+        PianoKeyLEDsRealTime(range(37,30,-1), [21, 22], red),
+        PianoKeyLEDsRealTime(range(37,30,-1), [23, 24, 25], red),
+        PianoKeyLEDsRealTime(range(37,30,-1), [26, 27], red),
+        PianoKeyLEDsRealTime(range(37,30,-1), [28, 29, 30], red),
     ]
 
     def __init__(self, numKeys):
         self.numKeys = numKeys
 
-    def _runWaterfall(waterfalling_keys: List[PianoKeyLEDsRealTime]):
+    def _runWaterfall(self, waterfalling_keys: List[PianoKeyLEDsRealTime]):
         start_time = time()
+        print(start_time)
+        print(len(waterfalling_keys))
+        print(waterfalling_keys[0].key_indexes)
         while (time() - start_time) < 2:
             for key in waterfalling_keys:
                 key.waterfall_refresh()
+            pixels.show()
+
 
     def renderPiano(self, activeKeys: List[int]):
-        waterfalling_keys: List[PianoKeyLEDsRealTime]
+        waterfalling_keys: List[PianoKeyLEDsRealTime] = []
         for keyIdx in activeKeys:
             key = self.keys[keyIdx - 24]
-            key.waterfall_begin(2)
+            key.waterfall_begin(.3)
             waterfalling_keys.append(key)
         
-        Thread(target=self._runWaterfall, args=waterfalling_keys).start()
+        # self._runWaterfall(waterfalling_keys)
+        Thread(target=self._runWaterfall, args=(waterfalling_keys,)).start()
 
         
 
 def main():    
     keys = [
-        PianoKeyLEDsRealTime(range(48,41,-1),[49,50], red),
-        PianoKeyLEDsRealTime(range(41,34,-1),[51,52], green),
+        PianoKeyLEDsRealTime(range(79,72,-1),[0,1,2], red),
+        PianoKeyLEDsRealTime(range(72,65,-1),[3,4], orange),
+        PianoKeyLEDsRealTime(range(65,58,-1),[5,6,7], yellow),
+        PianoKeyLEDsRealTime(range(58,51,-1),[8,9], green),
+        PianoKeyLEDsRealTime(range(51,44,-1),[10,11,12], blue),
+        PianoKeyLEDsRealTime(range(44,37,-1),[13,14,15], teal),
+        PianoKeyLEDsRealTime(range(37,30,-1),[16,17], purple),
+    #     PianoKeyLEDsRealTime(range(72,65,-1),[3,4], green),
+    #     PianoKeyLEDsRealTime(range(79,72,-1),[0,1,2], red),
+    #     PianoKeyLEDsRealTime(range(72,65,-1),[3,4], green),
+    #     PianoKeyLEDsRealTime(range(79,72,-1),[0,1,2], red),
+    #     PianoKeyLEDsRealTime(range(72,65,-1),[3,4], green),
     ]
 
-    sequence = [[1,[1,0]],
+    sequence = [[1,[1,0,0,1,0,0,1]],
                 [3,[0,1]],
                 [6,[1,0]],
                 [7,[0,1]],
