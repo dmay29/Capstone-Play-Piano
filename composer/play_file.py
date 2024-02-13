@@ -2,9 +2,25 @@ import mido
 from utils.midi_and_key_converter import midiToKey
 from utils.cli_piano import CLIPiano
 
+from typing import List, Tuple
 from time import time
-# from utils.key_led_control import pixels, red, PianoKeyLEDsRealTime, LEDPiano
+from utils.key_led_control import pixels, red, PianoKeyLEDsRealTime, LEDPiano
 
+class TimingInfo():
+    keyIdx: int
+    startTimeUs: float
+    durationUs: float
+
+    def __init__(self, keyIdx, startTimeUs, durationUs):
+        self.keyIdx = keyIdx
+        self.startTimeUs = startTimeUs
+        self.durationUs = durationUs
+    
+    def __str__(self):
+        return f"[{self.keyIdx}, {self.startTimeUs}, {self.durationUs}]"
+    
+    def __repr__(self):
+        return f"[{self.keyIdx}, {self.startTimeUs}, {self.durationUs}]"
 
 class MidiInterface():
 
@@ -13,11 +29,15 @@ class MidiInterface():
     time = (4, 4)
 
     def __init__(self):
-        self.midi_file = mido.MidiFile("/home/capstone/git/Capstone-Play-Piano/composer/sound_files/mary_little_lamb.mid")
+        self.midi_file = mido.MidiFile("sound_files/mary_little_lamb.mid")
+        self.ticks_per_beat = self.midi_file.ticks_per_beat
         self.cli_piano = CLIPiano(61)
-        # self.led_piano = LEDPiano(61)
+        self.led_piano = LEDPiano(61)
         self.active_keys = []
-
+        self.active_notes = []
+        self.timing_infos : List[TimingInfo] = []
+        self.now_us = 0
+    
     def run(self):
         time_step = 0
         loop = True
@@ -31,12 +51,20 @@ class MidiInterface():
                         note_repr[idx] = 1
                         self.sequence.append([time_step, note_repr])
                         time_step = time_step + 1
+                        self.active_notes.append(msg.note)
+                        self.timing_infos.append(TimingInfo(midiToKey(msg.note), self.now_us, 0))
                         self.active_keys.append(midiToKey(msg.note))
                         self.cli_piano.renderPiano(self.active_keys)
-                        # self.led_piano.renderPiano(self.active_keys)
                         print('')
+                        self.led_piano.renderPiano(self.active_keys)
 
                     elif msg.type == 'note_off':
+                        if (msg.note in self.active_notes):
+                            self.active_notes.remove(msg.note)
+                            note_timing = [x for x in self.timing_infos if x.keyIdx == midiToKey(msg.note)][-1]
+                            duration = msg.time * 1e6
+                            note_timing.durationUs = duration
+                            self.now_us += duration
                         self.active_keys.remove(midiToKey(msg.note))    
 
                     elif msg.type == "end_of_track":
@@ -55,7 +83,6 @@ class MidiInterface():
 if __name__ == '__main__':
     midi = MidiInterface()
     midi.run()
-    print(midi.sequence)
     print(f"Tempo: {midi.tempo}, Time: {midi.time}, BPM: {mido.tempo2bpm(midi.tempo, midi.time)}")
 
     # keys = [
