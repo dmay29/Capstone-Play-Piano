@@ -3,17 +3,19 @@ from utils.midi_and_key_converter import midiToKey
 from utils.cli_piano import CLIPiano
 
 from time import time
-from utils.key_led_control import pixels, red, PianoKeyLEDsRealTime, LEDPiano
+# from utils.key_led_control import pixels, red, PianoKeyLEDsRealTime, LEDPiano
 
 
 class MidiInterface():
 
     sequence = []
+    tempo = 500000
+    time = (4, 4)
 
     def __init__(self):
         self.midi_file = mido.MidiFile("/home/capstone/git/Capstone-Play-Piano/composer/sound_files/mary_little_lamb.mid")
         self.cli_piano = CLIPiano(61)
-        self.led_piano = LEDPiano(61)
+        # self.led_piano = LEDPiano(61)
         self.active_keys = []
 
     def run(self):
@@ -31,14 +33,20 @@ class MidiInterface():
                         time_step = time_step + 1
                         self.active_keys.append(midiToKey(msg.note))
                         self.cli_piano.renderPiano(self.active_keys)
-                        self.led_piano.renderPiano(self.active_keys)
+                        # self.led_piano.renderPiano(self.active_keys)
                         print('')
 
                     elif msg.type == 'note_off':
                         self.active_keys.remove(midiToKey(msg.note))    
 
                     elif msg.type == "end_of_track":
-                        loop = False 
+                        loop = False
+                    
+                    elif msg.type == "time_signature":
+                        self.time = (msg.numerator, msg.denominator)
+
+                    elif msg.type == "set_tempo":
+                        self.tempo = msg.tempo
                 
         except KeyboardInterrupt:
             pass
@@ -48,6 +56,7 @@ if __name__ == '__main__':
     midi = MidiInterface()
     midi.run()
     print(midi.sequence)
+    print(f"Tempo: {midi.tempo}, Time: {midi.time}, BPM: {mido.tempo2bpm(midi.tempo, midi.time)}")
 
     # keys = [
     #     PianoKeyLEDsRealTime(range(79,72,-1), [0, 1, 2], red),
