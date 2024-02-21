@@ -1,7 +1,8 @@
 import mido
 from mido import Message
 from mido.backends.rtmidi import Input
-from threading import Thread
+from threading import Thread, Event
+from time import time, sleep
 
 PIANO_NAME = 'Impact GX61 MIDI1'
 
@@ -14,7 +15,7 @@ LOOP_BTN = 4 # 69 in shift
 STOP_BTN = 6 # 98 in shift
 VOL_KNOB = 7
 PLAY_BTN = 8 # 99 in shift
-RECORD_BTN = 9 # 100 in shift
+RECORD_BTN = 9 # 100 in shift 
 
 RISING = "rising"
 PRESSED = "pressed"
@@ -24,7 +25,7 @@ FALLING = "falling"
 
 VALID_EDGES = [RISING, PRESSED, BOTH, RELEASED, FALLING]
 
-class PianoReader():
+class ControlPianoReader():
 
 
     thread:Thread = None
@@ -63,79 +64,80 @@ class PianoReader():
         self._input_port.close()
 
     def _run(self):
-        """ Main monitoring loop. Should only be run in a thread using PianoReader.begin() """
+        """ Main monitoring loop. Should only be run in a thread using ControlPianoReader.begin() """
         while self.running:
             for msg in self._input_port.iter_pending():
-                msg: Message
+                self.read_msg(msg)
 
-                # A note on message, add the note to the pressed keys set
-                # and run callbacks
-                if msg.type == "note_on": 
-                    self._pressed_keys.add(msg.note)
-                    self.run_callbacks(f"key {msg.note}",[PRESSED,BOTH])
+    def read_msg(self, msg: Message):
+        # A note on message, add the note to the pressed keys set
+        # and run callbacks
+        if msg.type == "note_on": 
+            self._pressed_keys.add(msg.note)
+            self.run_callbacks(f"key {msg.note}",[PRESSED,BOTH])
 
-                # A note off message, remove the note from the pressed keys set
-                # and run callbacks
-                elif msg.type == "note_off":
-                    self._pressed_keys.discard(msg.note)
-                    self.run_callbacks(f"key {msg.note}",[RELEASED,BOTH])
+        # A note off message, remove the note from the pressed keys set
+        # and run callbacks
+        elif msg.type == "note_off":
+            self._pressed_keys.discard(msg.note)
+            self.run_callbacks(f"key {msg.note}",[RELEASED,BOTH])
 
-                # A pitchwheel message, the left knob is the pitch wheel 
-                # Determine if the value was increasing or decreasing
-                # Save value and run callbacks
-                elif msg.type == "pitchwheel":
-                    if msg.pitch > self.left_knob_position: edge = RISING
-                    elif msg.pitch < self.left_knob_position: edge = FALLING
-                    else: edge = None
-                    self.left_knob_position = msg.pitch
-                    self.run_callbacks("left knob",[edge,BOTH])
+        # A pitchwheel message, the left knob is the pitch wheel 
+        # Determine if the value was increasing or decreasing
+        # Save value and run callbacks
+        elif msg.type == "pitchwheel":
+            if msg.pitch > self.left_knob_position: edge = RISING
+            elif msg.pitch < self.left_knob_position: edge = FALLING
+            else: edge = None
+            self.left_knob_position = msg.pitch
+            self.run_callbacks("left knob",[edge,BOTH])
 
-                # Control messages are all the other controls on the piano
-                elif msg.type == "control_change":
+        # Control messages are all the other controls on the piano
+        elif msg.type == "control_change":
 
-                    # A right knob message
-                    # Determine if the value was increasing or decreasing
-                    # Save value and run callbacks
+            # A right knob message
+            # Determine if the value was increasing or decreasing
+            # Save value and run callbacks
 
-                    if msg.control == RIGHT_KNOB:
-                        if msg.value > self.right_knob_position: edge = RISING
-                        elif msg.value < self.right_knob_position: edge = FALLING
-                        else: edge = None
-                        self.right_knob_position = msg.value
-                        self.run_callbacks("right knob",[edge,BOTH])
+            if msg.control == RIGHT_KNOB:
+                if msg.value > self.right_knob_position: edge = RISING
+                elif msg.value < self.right_knob_position: edge = FALLING
+                else: edge = None
+                self.right_knob_position = msg.value
+                self.run_callbacks("right knob",[edge,BOTH])
 
-                    # A vol knob message
-                    # Determine if the value was increasing or decreasing
-                    # Save value and run callbacks
-                    elif msg.control == VOL_KNOB:
-                        if msg.value > self.vol_knob_position: edge = RISING
-                        elif msg.value < self.vol_knob_position: edge = FALLING
-                        else: edge = None
-                        self.vol_knob_position = msg.value
-                        self.run_callbacks("vol knob",[edge,BOTH])
+            # A vol knob message
+            # Determine if the value was increasing or decreasing
+            # Save value and run callbacks
+            elif msg.control == VOL_KNOB:
+                if msg.value > self.vol_knob_position: edge = RISING
+                elif msg.value < self.vol_knob_position: edge = FALLING
+                else: edge = None
+                self.vol_knob_position = msg.value
+                self.run_callbacks("vol knob",[edge,BOTH])
 
-                    # Any other controls, these are the other buttons
-                    # TODO: Implement button specific names? 
-                    else:
-                        # If the value is non-zero the button was pressed
-                        # Add it to the set and run callbacks
-                        if msg.value != 0:
-                            self._pressed_btns.add(msg.control)
-                            self.run_callbacks(f"btn {msg.control}",[PRESSED,BOTH])
-                        
-                        # If the value is zero the button was releases
-                        # Remove it from the set and run callbacks
-                        else:
-                            self._pressed_btns.discard(msg.control)
-                            self.run_callbacks(f"btn {msg.control}",[RELEASED,BOTH])
+            # Any other controls, these are the other buttons
+            # TODO: Implement button specific names? 
+            else:
+                # If the value is non-zero the button was pressed
+                # Add it to the set and run callbacks
+                if msg.value != 0:
+                    self._pressed_btns.add(msg.control)
+                    self.run_callbacks(f"btn {msg.control}",[PRESSED,BOTH])
+                
+                # If the value is zero the button was releases
+                # Remove it from the set and run callbacks
+                else:
+                    self._pressed_btns.discard(msg.control)
+                    self.run_callbacks(f"btn {msg.control}",[RELEASED,BOTH])
 
-                print(
-                    f"Keys Pressed: {self.pressed_keys}\n"
-                    f"Btns Pressed: {self.pressed_btns}\n"
-                    f"Volume Knob:  {self.vol_knob_position}\n"
-                    f"Left Knob:    {self.left_knob_position}\n"
-                    f"Right Knob:   {self.right_knob_position}\n"
-                )
+        print(
+            f"Keys Pressed: {self.pressed_keys}\n"
+            f"Btns Pressed: {self.pressed_btns}\n"
+            f"Volume Knob:  {self.vol_knob_position}\n"
+            f"Left Knob:    {self.left_knob_position}\n"
+            f"Right Knob:   {self.right_knob_position}\n"
+        )
     
 
     # Button/Key Handlers
@@ -254,10 +256,75 @@ class PianoReader():
         for edge,callback in callback_list:
             if valid_edges is None or edge in valid_edges:
                 callback()
- 
+
+
+
+class NotesPianoReader(ControlPianoReader):
+    '''
+    Needs to change the way we look at pressed keys.
+    Should it just maintain a list of all the note_on/off commands?
+    Or should it be an along the way kind of thing? Maybe a blocking generator? 
+    Yea i think a generator would work well. 
+    But it should also maintain a list probably for looking at later
+    '''
+
+    
+
+    def __init__(self, piano_name = PIANO_NAME, time_zero = None):
+        self.time_zero = time_zero or time()
+        super().__init__(piano_name)
+        self._in_progress_notes: list[int, float, int] = []
+        self._played_notes: list[int,float,float, int] = []
+        self._new_notes_event = Event()
+        self._new_notes_event.clear()
+
+    def read_note_msg(self, msg: Message, now = None):
+        if now is None:
+            now = time()
+        if msg.type == "note_on": 
+            self._in_progress_notes.append([msg.note, now, msg.velocity])
+
+        elif msg.type == "note_off":
+            for i,entry in enumerate(self._in_progress_notes):
+                if entry[0] == msg.note:
+                    note, start, velocity = self._in_progress_notes.pop(i)
+                    self._played_notes.append([note,
+                                               start,
+                                               now - start,
+                                               velocity])
+                    self._new_notes_event.set()
+                    break
+
+    @property 
+    def time_since_zero(self):
+        return time()-self.time_zero            
+
+    def get_notes(self):
+        '''
+        '''
+        i = 0
+        while True:
+            self._new_notes_event.wait()
+            while i < len(self._played_notes):
+                yield self._played_notes[i]
+                i+=1
+            self._new_notes_event.clear()
+            
+                    
+
+    def _run(self):
+        while self.running:
+            now = self.time_since_zero
+            for msg in self._input_port.iter_pending():
+                self.read_msg(msg)
+                self.read_note_msg(msg, now)
+
+    
+
+
 
 if __name__ == '__main__':
-    midi = PianoReader()
+    midi = NotesPianoReader()
     l = lambda: print("Vol Changed!")
     midi.attach_vol_knob_callback(l)
     midi.attach_vol_knob_callback(lambda: print("Vol Decreased!"),edge = FALLING)
@@ -265,13 +332,16 @@ if __name__ == '__main__':
     midi.attach_key_callback(80, lambda:print("Key 80 released!"),edge = RELEASED)
     midi.attach_key_callback(81, lambda:midi.remove_vol_knob_callback(l),edge = PRESSED)
     midi.begin()
-    try:
-        while True:
-            pass
-    except KeyboardInterrupt:
-        pass
-    finally:
-        midi.close()
+
+    for i in midi.get_notes():
+        print(i)
+    # try:
+    #     while True:
+    #         pass
+    # except KeyboardInterrupt:
+    #     pass
+    # finally:
+    #     midi.close()
 
 
 
