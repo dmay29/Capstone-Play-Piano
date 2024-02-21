@@ -1,22 +1,22 @@
 import mido
 
-def extract_notes(midi_file):
+def extract_notes(midi_file, speed = 1, note_offset = 24):
     note_dict = {}
     mid = mido.MidiFile(midi_file)
     current_time = 0
     
     for msg in mid:
-        current_time += msg.time
+        current_time += speed * msg.time
         
         if msg.type == 'note_on':
-            if msg.note not in note_dict:
-                note_dict[msg.note] = []
-            note_dict[msg.note].append((current_time, 0))
+            if msg.note - note_offset not in note_dict:
+                note_dict[msg.note - note_offset] = []
+            note_dict[msg.note - note_offset].append((current_time, 0))
         elif msg.type == 'note_off':
-            if msg.note in note_dict and note_dict[msg.note][-1][1] == 0:
-                note_dict[msg.note][-1] = (note_dict[msg.note][-1][0],
+            if msg.note - note_offset in note_dict and note_dict[msg.note - note_offset][-1][1] == 0:
+                note_dict[msg.note - note_offset][-1] = (note_dict[msg.note - note_offset][-1][0],
 
- current_time - note_dict[msg.note][-1][0])
+ current_time - note_dict[msg.note - note_offset][-1][0])
     
     return note_dict
 
