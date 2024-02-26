@@ -1,8 +1,9 @@
 import mido
 from mido import Message
 from mido.backends.rtmidi import Input
-from threading import Thread, Event
-from time import time, sleep
+from threading import Event
+
+from base_classes import RealTime, Threaded
 
 PIANO_NAME = 'Impact GX61 MIDI1'
 
@@ -25,16 +26,13 @@ FALLING = "falling"
 
 VALID_EDGES = [RISING, PRESSED, BOTH, RELEASED, FALLING]
 
-class ControlPianoReader():
+class ControlPianoReader(Threaded):
 
-
-    thread:Thread = None
-    running: bool = False
 
     callbacks:dict[str,list[str,callable]] = None
 
     
-    def __init__(self, piano_name = PIANO_NAME):
+    def __init__(self, piano_name = PIANO_NAME, keys_offset = 0):
         
         self._input_port:Input = mido.open_input(piano_name)
         self._pressed_keys = set()
@@ -44,43 +42,33 @@ class ControlPianoReader():
         self.right_knob_position = 0
 
         self.callbacks = {}
+
+        self.keys_offset = keys_offset
         
-    def begin(self):
-        """ End any previous thread. Begin a new one """
-        self.end()
-        self.thread = Thread(target = self._run)
-        self.running = True
-        self.thread.start()
-
-    def end(self):
-        """ End the thread if one is running """
-        self.running = False
-        if self.thread is not None:
-            self.thread.join()
-
     def close(self):
         """ End thread and close port """
-        self.end()
+        super(self, Threaded).close()
         self._input_port.close()
-
-    def _run(self):
-        """ Main monitoring loop. Should only be run in a thread using ControlPianoReader.begin() """
-        while self.running:
-            for msg in self._input_port.iter_pending():
+            
+    def loop(self):
+        """ Mian monitoring loop """
+        for msg in self._input_port.iter_pending():
                 self.read_msg(msg)
 
     def read_msg(self, msg: Message):
         # A note on message, add the note to the pressed keys set
         # and run callbacks
         if msg.type == "note_on": 
-            self._pressed_keys.add(msg.note)
-            self.run_callbacks(f"key {msg.note}",[PRESSED,BOTH])
+            note_num = msg.note - self.keys_offset
+            self._pressed_keys.add(note_num)
+            self.run_callbacks(f"key {note_num}",[PRESSED,BOTH], note_num)
 
         # A note off message, remove the note from the pressed keys set
         # and run callbacks
         elif msg.type == "note_off":
-            self._pressed_keys.discard(msg.note)
-            self.run_callbacks(f"key {msg.note}",[RELEASED,BOTH])
+            note_num = msg.note - self.keys_offset
+            self._pressed_keys.discard(note_num)
+            self.run_callbacks(f"key {note_num}",[RELEASED,BOTH], note_num)
 
         # A pitchwheel message, the left knob is the pitch wheel 
         # Determine if the value was increasing or decreasing
@@ -90,7 +78,7 @@ class ControlPianoReader():
             elif msg.pitch < self.left_knob_position: edge = FALLING
             else: edge = None
             self.left_knob_position = msg.pitch
-            self.run_callbacks("left knob",[edge,BOTH])
+            self.run_callbacks("left knob",[edge,BOTH], self.left_knob_position)
 
         # Control messages are all the other controls on the piano
         elif msg.type == "control_change":
@@ -104,7 +92,7 @@ class ControlPianoReader():
                 elif msg.value < self.right_knob_position: edge = FALLING
                 else: edge = None
                 self.right_knob_position = msg.value
-                self.run_callbacks("right knob",[edge,BOTH])
+                self.run_callbacks("right knob",[edge,BOTH], self.right_knob_position)
 
             # A vol knob message
             # Determine if the value was increasing or decreasing
@@ -114,7 +102,7 @@ class ControlPianoReader():
                 elif msg.value < self.vol_knob_position: edge = FALLING
                 else: edge = None
                 self.vol_knob_position = msg.value
-                self.run_callbacks("vol knob",[edge,BOTH])
+                self.run_callbacks("vol knob",[edge,BOTH], self.vol_knob_position)
 
             # Any other controls, these are the other buttons
             # TODO: Implement button specific names? 
@@ -123,21 +111,21 @@ class ControlPianoReader():
                 # Add it to the set and run callbacks
                 if msg.value != 0:
                     self._pressed_btns.add(msg.control)
-                    self.run_callbacks(f"btn {msg.control}",[PRESSED,BOTH])
+                    self.run_callbacks(f"btn {msg.control}",[PRESSED,BOTH], msg.control)
                 
                 # If the value is zero the button was releases
                 # Remove it from the set and run callbacks
                 else:
                     self._pressed_btns.discard(msg.control)
-                    self.run_callbacks(f"btn {msg.control}",[RELEASED,BOTH])
+                    self.run_callbacks(f"btn {msg.control}",[RELEASED,BOTH], msg.control)
 
-        print(
-            f"Keys Pressed: {self.pressed_keys}\n"
-            f"Btns Pressed: {self.pressed_btns}\n"
-            f"Volume Knob:  {self.vol_knob_position}\n"
-            f"Left Knob:    {self.left_knob_position}\n"
-            f"Right Knob:   {self.right_knob_position}\n"
-        )
+        # print(
+        #     f"Keys Pressed: {self.pressed_keys}\n"
+        #     f"Btns Pressed: {self.pressed_btns}\n"
+        #     f"Volume Knob:  {self.vol_knob_position}\n"
+        #     f"Left Knob:    {self.left_knob_position}\n"
+        #     f"Right Knob:   {self.right_knob_position}\n"
+        # )
     
 
     # Button/Key Handlers
@@ -245,7 +233,7 @@ class ControlPianoReader():
         self.remove_callback(f"right knob", callback_to_remove)
 
 
-    def run_callbacks(self, name, valid_edges = None):
+    def run_callbacks(self, name, valid_edges = None, *args):
         """ 
         Execute any callbacks from control `name` if the edge type is in `valid_edges`.
         If `valid_edges` is None, execute all associated callbacks.
@@ -255,11 +243,11 @@ class ControlPianoReader():
             valid_edges = [valid_edges]
         for edge,callback in callback_list:
             if valid_edges is None or edge in valid_edges:
-                callback()
+                callback(*args)
 
 
 
-class NotesPianoReader(ControlPianoReader):
+class NotesPianoReader(ControlPianoReader, RealTime):
     '''
     Needs to change the way we look at pressed keys.
     Should it just maintain a list of all the note_on/off commands?
@@ -270,9 +258,9 @@ class NotesPianoReader(ControlPianoReader):
 
     
 
-    def __init__(self, piano_name = PIANO_NAME, time_zero = None):
-        self.time_zero = time_zero or time()
-        super().__init__(piano_name)
+    def __init__(self, piano_name = PIANO_NAME, time_zero = None, keys_offset = 0):
+        self.set_time_zero()
+        super().__init__(piano_name, keys_offset)
         self._in_progress_notes: list[int, float, int] = []
         self._played_notes: list[int,float,float, int] = []
         self._new_notes_event = Event()
@@ -280,24 +268,22 @@ class NotesPianoReader(ControlPianoReader):
 
     def read_note_msg(self, msg: Message, now = None):
         if now is None:
-            now = time()
+            now = self.time_since_zero
         if msg.type == "note_on": 
-            self._in_progress_notes.append([msg.note, now, msg.velocity])
+            note_num = msg.note - self.keys_offset
+            self._in_progress_notes.append([note_num, now, msg.velocity])
 
         elif msg.type == "note_off":
+            note_num = msg.note - self.keys_offset
             for i,entry in enumerate(self._in_progress_notes):
-                if entry[0] == msg.note:
+                if entry[0] == note_num:
                     note, start, velocity = self._in_progress_notes.pop(i)
                     self._played_notes.append([note,
                                                start,
                                                now - start,
                                                velocity])
                     self._new_notes_event.set()
-                    break
-
-    @property 
-    def time_since_zero(self):
-        return time()-self.time_zero            
+                    break         
 
     def get_notes(self):
         '''
@@ -312,7 +298,7 @@ class NotesPianoReader(ControlPianoReader):
             
                     
 
-    def _run(self):
+    def loop(self):
         while self.running:
             now = self.time_since_zero
             for msg in self._input_port.iter_pending():
@@ -325,12 +311,12 @@ class NotesPianoReader(ControlPianoReader):
 
 if __name__ == '__main__':
     midi = NotesPianoReader()
-    l = lambda: print("Vol Changed!")
+    l = lambda x: print("Vol Changed!")
     midi.attach_vol_knob_callback(l)
-    midi.attach_vol_knob_callback(lambda: print("Vol Decreased!"),edge = FALLING)
-    midi.attach_key_callback(80, lambda:print("Key 80 pressed!"), edge = PRESSED)
-    midi.attach_key_callback(80, lambda:print("Key 80 released!"),edge = RELEASED)
-    midi.attach_key_callback(81, lambda:midi.remove_vol_knob_callback(l),edge = PRESSED)
+    midi.attach_vol_knob_callback(lambda x: print("Vol Decreased!"),edge = FALLING)
+    midi.attach_key_callback(80, lambda x:print("Key 80 pressed!"), edge = PRESSED)
+    midi.attach_key_callback(80, lambda x:print("Key 80 released!"),edge = RELEASED)
+    midi.attach_key_callback(81, lambda x:midi.remove_vol_knob_callback(l),edge = PRESSED)
     midi.begin()
 
     for i in midi.get_notes():
