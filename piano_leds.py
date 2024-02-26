@@ -3,6 +3,8 @@ import neopixel
 from time import time, sleep
 from midi_reader import extract_notes
 
+from base_classes import RealTime
+
 BPM = 300
 DELAY = 60 / BPM
 
@@ -71,13 +73,13 @@ class LEDNote:
     def show(self, now):
         start_pixel = (now - self.pixels_start_time) / self.time_per_pixel
         for i in range(len(self.pixel_array)):
-            x = i - start_pixel
+            x = i - start_pixel + self.width / 2
             if -self.width / 2 < x < self.width / 2:
                 val = self.A * (x**4) - self.B * (x**2) + 1
                 self.pixel_array[i] = val
 
 
-class PianoKeyLEDsRealTime:
+class PianoKeyLEDsRealTime(RealTime):
     """
     LED controller for one key,
     Running begin starts a waterfall
@@ -86,25 +88,21 @@ class PianoKeyLEDsRealTime:
     Looks pretty fluid
     """
 
-    width = 4
-    A = (2 / width) ** 4
-    B = 2 * (2 / width) ** 2
-    start_time = None
-    speed = 1
-
     def __init__(
         self,
+        pixels,
         above_key_indexes: list,
         key_indexes: list,
         color: list,
         fall_time: int = 1,
         note_times: list[list[float, float]] = None,
     ):
+        self.pixels = pixels
         self.above_key_indexes = list(above_key_indexes)
         self.key_indexes = list(key_indexes)
         self.color = color
         self.fall_time = fall_time
-        self.reset_time()
+        self.set_time_zero()
         self.num_pixels = len(self.above_key_indexes)
         self.time_per_pixel = self.fall_time / self.num_pixels
         self.pixel_array = [0 for pixel in range(self.num_pixels + 1)]
@@ -114,9 +112,6 @@ class PianoKeyLEDsRealTime:
         else:
             self.notes = []
 
-    @property
-    def time_since_zero(self):
-        return time() - self.time_zero
 
     def refresh(self):
         self.pixel_array = [0 for _ in self.pixel_array]
@@ -129,16 +124,14 @@ class PianoKeyLEDsRealTime:
     def set_pixels(self):
         for i, brightness in enumerate(self.pixel_array[0:-1]):
             index = self.above_key_indexes[i]
-            pixels[index] = dimmer(self.color, brightness)
+            self.pixels[index] = dimmer(self.color, brightness)
 
         self.light_key(self.pixel_array[-1] != 0)
 
     def light_key(self, brightness):
         for index in self.key_indexes:
-            pixels[index] = dimmer(self.color, brightness)
+            self.pixels[index] = dimmer(self.color, brightness)
 
-    def reset_time(self):
-        self.time_zero = time() + self.fall_time
 
     def make_notes(self, note_times):
         self.notes = [LEDNote(note_times[0][0], note_times[0][1], self)]
@@ -163,6 +156,7 @@ timing_dict[25] = [(0, 1), (6,1)]
 FALL = 1
 keys = [
     PianoKeyLEDsRealTime(
+        pixels,
         [119, 120, 121, 122, 123, 124, 125, 126],
         [0, 1, 2],
         colors[0],
@@ -170,6 +164,7 @@ keys = [
         timing_dict.get(24),
     ),
     PianoKeyLEDsRealTime(
+        pixels,
         [118, 117, 116, 115, 114, 113, 112, 111],
         [3, 4],
         colors[1],
@@ -177,6 +172,7 @@ keys = [
         timing_dict.get(25),
     ),
     PianoKeyLEDsRealTime(
+        pixels,
         [103, 104, 105, 106, 107, 108, 109, 110],
         [5, 6, 7],
         colors[2],
@@ -184,6 +180,7 @@ keys = [
         timing_dict.get(26),
     ),
     PianoKeyLEDsRealTime(
+        pixels,
         [102, 101, 100, 99, 98, 97, 96, 95],
         [8, 9],
         colors[3],
@@ -191,6 +188,7 @@ keys = [
         timing_dict.get(27),
     ),
     PianoKeyLEDsRealTime(
+        pixels,
         [87, 88, 89, 90, 91, 92, 93, 94],
         [10, 11, 12],
         colors[4],
@@ -198,6 +196,7 @@ keys = [
         timing_dict.get(28),
     ),
     PianoKeyLEDsRealTime(
+        pixels,
         [86, 85, 84, 83, 82, 81, 80, 79],
         [13, 14, 15],
         colors[5],
@@ -205,9 +204,11 @@ keys = [
         timing_dict.get(29),
     ),
     PianoKeyLEDsRealTime(
+        pixels,
         [71, 72, 73, 74, 75, 76, 77, 78], [16, 17], colors[6], FALL, timing_dict.get(30)
     ),
     PianoKeyLEDsRealTime(
+        pixels,
         [70, 69, 68, 67, 66, 65, 64, 63],
         [18, 19, 20],
         colors[7],
@@ -215,9 +216,11 @@ keys = [
         timing_dict.get(31),
     ),
     PianoKeyLEDsRealTime(
+        pixels,
         [55, 56, 57, 58, 59, 60, 61, 62], [21, 22], colors[8], FALL, timing_dict.get(32)
     ),
     PianoKeyLEDsRealTime(
+        pixels,
         [54, 53, 52, 51, 50, 49, 48, 47],
         [23, 24, 25],
         colors[9],
@@ -225,6 +228,7 @@ keys = [
         timing_dict.get(33),
     ),
     PianoKeyLEDsRealTime(
+        pixels,
         [39, 40, 41, 42, 43, 44, 45, 46],
         [26, 27],
         colors[10],
@@ -232,6 +236,7 @@ keys = [
         timing_dict.get(34),
     ),
     PianoKeyLEDsRealTime(
+        pixels,
         [38, 37, 36, 35, 34, 33, 32, 31],
         [28, 29, 30],
         colors[11],
@@ -251,6 +256,6 @@ if __name__ == "__main__":
         pixels.show()
 
         if keys[0].time_since_zero > 20:
-            now = time()
+            now = RealTime.now()
             for key in keys:
-                key.reset_time()
+                key.set_time_zero(now)
