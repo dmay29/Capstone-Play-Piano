@@ -106,12 +106,8 @@ class PianoKeyLEDsRealTime(RealTime):
         self.num_pixels = len(self.above_key_indexes)
         self.time_per_pixel = self.fall_time / self.num_pixels
         self.pixel_array = [0 for pixel in range(self.num_pixels + 1)]
-
-        if note_times is not None:
-            self.make_notes(note_times)
-        else:
-            self.notes = []
-
+        self.make_notes(note_times)
+        
 
     def refresh(self):
         self.pixel_array = [0 for _ in self.pixel_array]
@@ -133,7 +129,11 @@ class PianoKeyLEDsRealTime(RealTime):
             self.pixels[index] = dimmer(self.color, brightness)
 
 
-    def make_notes(self, note_times):
+    def make_notes(self, note_times=None):
+        if note_times is None: 
+            self.notes = []
+            return 
+        
         self.notes = [LEDNote(note_times[0][0], note_times[0][1], self)]
         for start, duration in note_times[1:]:
             previous_note = self.notes[-1]

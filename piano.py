@@ -2,7 +2,6 @@ from piano_leds import PianoKeyLEDsRealTime, colors
 from midi_reader import extract_notes
 from base_classes import Threaded, RealTime
 
-from time import time, sleep
 from pathlib import Path
 import board
 import neopixel
@@ -18,21 +17,25 @@ class PianoLEDsRealTime(RealTime, Threaded):
         self.fall_time = fall_time
         self.note_offset = note_offset
         self.pixels = neopixel.NeoPixel(board.D21, 127*5, brightness=0.5, auto_write=False)
-        self.load_midi(midi_file, speed, note_offset)
         self.keys: dict[int, PianoKeyLEDsRealTime] = self.construct_piano()
+        self.load_midi(midi_file, speed, note_offset)
         
 
     def load_midi(self, midi_file, speed, note_offset):
         self.midi_file: Path = Path(midi_file)
         self.timing_dict = extract_notes(self.midi_file, speed, note_offset)
+        for key_num, key in self.keys.items():
+            key.make_notes(self.timing_dict.get(key_num))
+            
 
     def loop(self):
+        """ Threaded loop function/ Started by running piano.begin() """
         self.refresh()
     
         if self.keys[self.note_offset].time_since_zero > 20:
-            now = time()
-            for key_num, key in self.keys.items():
-                key.set_time_zero(now)
+            now = self.now()
+            for key in self.keys.values():
+                key.set_time_zero()
 
     def refresh(self):
         for key in self.keys.values():
@@ -61,7 +64,7 @@ class PianoLEDsRealTime(RealTime, Threaded):
                 [first_led, first_led + 1, first_led + 2],
                 colors[key],
                 self.fall_time,
-                note_times = self.timing_dict.get(key_offset + key)
+                note_times = None
             )
 
             key += 1
@@ -75,7 +78,7 @@ class PianoLEDsRealTime(RealTime, Threaded):
                 [first_led, first_led + 1],
                 colors[key],
                 self.fall_time,
-                note_times = self.timing_dict.get(key_offset + key)
+                note_times = None
             )
 
             key += 1
@@ -89,7 +92,7 @@ class PianoLEDsRealTime(RealTime, Threaded):
                 [first_led, first_led + 1, first_led + 2],
                 colors[key],
                 self.fall_time,
-                note_times = self.timing_dict.get(key_offset + key)
+                note_times = None
             )
 
             key += 1
@@ -103,7 +106,7 @@ class PianoLEDsRealTime(RealTime, Threaded):
                 [first_led, first_led + 1],
                 colors[key],
                 self.fall_time,
-                note_times = self.timing_dict.get(key_offset + key)
+                note_times = None
             )
 
             key += 1
@@ -117,7 +120,7 @@ class PianoLEDsRealTime(RealTime, Threaded):
                 [first_led, first_led + 1, first_led + 2],
                 colors[key],
                 self.fall_time,
-                note_times = self.timing_dict.get(key_offset + key)
+                note_times = None
             )
 
             key += 1
@@ -131,35 +134,7 @@ class PianoLEDsRealTime(RealTime, Threaded):
                 [first_led, first_led + 1, first_led + 2],
                 colors[key],
                 self.fall_time,
-                note_times = self.timing_dict.get(key_offset + key)
-            )
-
-            key += 1
-            first_led += 3
-            last_led -= self.num_leds
-
-            ## Black Key ##
-            keys[key_offset + key] = PianoKeyLEDsRealTime(
-                self.pixels,
-                range(last_led - self.num_leds, last_led),
-                [first_led, first_led + 1],
-                colors[key],
-                self.fall_time,
-                note_times = self.timing_dict.get(key_offset + key)
-            )
-
-            key += 1
-            first_led += 2
-            last_led -= self.num_leds
-
-            ## White Key ##
-            keys[key_offset + key]  = PianoKeyLEDsRealTime(
-                self.pixels,
-                range(last_led-1, last_led-1-self.num_leds, -1),
-                [first_led, first_led + 1, first_led + 2],
-                colors[key],
-                self.fall_time,
-                note_times = self.timing_dict.get(key_offset + key)
+                note_times = None
             )
 
             key += 1
@@ -173,7 +148,7 @@ class PianoLEDsRealTime(RealTime, Threaded):
                 [first_led, first_led + 1],
                 colors[key],
                 self.fall_time,
-                note_times = self.timing_dict.get(key_offset + key)
+                note_times = None
             )
 
             key += 1
@@ -187,7 +162,7 @@ class PianoLEDsRealTime(RealTime, Threaded):
                 [first_led, first_led + 1, first_led + 2],
                 colors[key],
                 self.fall_time,
-                note_times = self.timing_dict.get(key_offset + key)
+                note_times = None
             )
 
             key += 1
@@ -201,7 +176,7 @@ class PianoLEDsRealTime(RealTime, Threaded):
                 [first_led, first_led + 1],
                 colors[key],
                 self.fall_time,
-                note_times = self.timing_dict.get(key_offset + key)
+                note_times = None
             )
 
             key += 1
@@ -215,10 +190,39 @@ class PianoLEDsRealTime(RealTime, Threaded):
                 [first_led, first_led + 1, first_led + 2],
                 colors[key],
                 self.fall_time,
-                note_times = self.timing_dict.get(key_offset + key)
+                note_times = None
+            )
+
+            key += 1
+            first_led += 3
+            last_led -= self.num_leds
+
+            ## Black Key ##
+            keys[key_offset + key] = PianoKeyLEDsRealTime(
+                self.pixels,
+                range(last_led - self.num_leds, last_led),
+                [first_led, first_led + 1],
+                colors[key],
+                self.fall_time,
+                note_times = None
+            )
+
+            key += 1
+            first_led += 2
+            last_led -= self.num_leds
+
+            ## White Key ##
+            keys[key_offset + key]  = PianoKeyLEDsRealTime(
+                self.pixels,
+                range(last_led-1, last_led-1-self.num_leds, -1),
+                [first_led, first_led + 1, first_led + 2],
+                colors[key],
+                self.fall_time,
+                note_times = None
             )
         
         return keys
+
 
 
 

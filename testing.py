@@ -7,7 +7,7 @@ from time import time
 from base_classes import RealTime
 
 if __name__ == '__main__':
-    RealTime.now = lambda _: time()/5
+    # RealTime.now = lambda _: time()/5
     piano = PianoLEDsRealTime(0, 8, 5, 1, 24, "composer/sound_files/mary_little_lamb.mid", 2)
     piano_reader = NotesPianoReader(keys_offset=56)
     piano.sync(piano_reader)
