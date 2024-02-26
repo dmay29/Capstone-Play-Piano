@@ -1,33 +1,18 @@
-from LEDS.key_start import *
-import time
-from python_midi_testing.midi_test import MidiInterface
-from LEDS import key_start
-import threading
+from piano_reader import NotesPianoReader
+from piano import PianoLEDsRealTime
+from scoring import score_notes
+from speaker import set_volume
+from time import time
 
+from base_classes import RealTime
 
-    
-keys = [
-    PianoKeyLEDs(range(48,41,-1),[49,50], red),
-    PianoKeyLEDs(range(41,34,-1),[51,52], green),
-]
+if __name__ == '__main__':
+    RealTime.now = lambda _: time()/5
+    piano = PianoLEDsRealTime(0, 8, 5, 1, 24, "composer/sound_files/mary_little_lamb.mid", 2)
+    piano_reader = NotesPianoReader(keys_offset=56)
+    piano.sync(piano_reader)
+    piano_reader.attach_vol_knob_callback(lambda vol: set_volume(int(vol/2)))
+    piano.begin()
+    piano_reader.begin()
 
-notes_sequence = [[1,0],
-                  [0,0],
-                  [0,0],
-                  [0,1],
-                  [0,0],
-                  [0,0],
-                  [0,0],
-                  [0,0],
-                  [0,0],
-                  [0,0],
-                  [0,0],
-                  [0,0],]
-
-midi = MidiInterface()
-threading.Thread(target=midi.run).start()
-
-key_start.main()
-
-    
-    
+    score_notes(piano.timing_dict, piano_reader.get_notes())
