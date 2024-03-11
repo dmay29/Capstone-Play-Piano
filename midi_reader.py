@@ -14,11 +14,16 @@ def extract_notes(midi_file, speed = 1, note_offset = 24):
             note_dict[msg.note - note_offset].append((current_time, 0))
         elif msg.type == 'note_off':
             if msg.note - note_offset in note_dict and note_dict[msg.note - note_offset][-1][1] == 0:
-                note_dict[msg.note - note_offset][-1] = (note_dict[msg.note - note_offset][-1][0],
-
- current_time - note_dict[msg.note - note_offset][-1][0])
+                note_dict[msg.note - note_offset][-1] = (
+                    note_dict[msg.note - note_offset][-1][0],
+                    current_time - note_dict[msg.note - note_offset][-1][0]
+                )
+        elif msg.type == 'end_of_track':
+            note_dict['end'] = current_time
     
     return note_dict
+
+
 
 def main():
     midi_file = "composer/sound_files/mary_little_lamb.mid"

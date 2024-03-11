@@ -2,6 +2,7 @@ import mido
 from mido import Message
 from mido.backends.rtmidi import Input
 from threading import Event
+from scoring import score_note
 
 from base_classes import RealTime, Threaded
 
@@ -265,6 +266,8 @@ class NotesPianoReader(ControlPianoReader, RealTime):
         self._played_notes: list[int,float,float, int] = []
         self._new_notes_event = Event()
         self._new_notes_event.clear()
+        self._note_index = 0
+
 
     def read_note_msg(self, msg: Message, now = None):
         if now is None:
@@ -288,22 +291,42 @@ class NotesPianoReader(ControlPianoReader, RealTime):
     def get_notes(self):
         '''
         '''
-        i = 0
-        while True:
-            self._new_notes_event.wait()
-            while i < len(self._played_notes):
-                yield self._played_notes[i]
-                i+=1
+        if self.notes_available():
+            notes = self._played_notes[self._note_index:]
+            self._note_index += len(notes)
             self._new_notes_event.clear()
+            return notes
+        else:
+            return []
+
+    def notes_available(self):
+        return self._new_notes_event.is_set()
             
                     
 
     def loop(self):
-        while self.running:
+        for msg in self._input_port.iter_pending():
+            print(msg)
+            self.read_msg(msg)
             now = self.time_since_zero
-            for msg in self._input_port.iter_pending():
-                self.read_msg(msg)
-                self.read_note_msg(msg, now)
+            self.read_note_msg(msg, now)
+
+class PianoScorer(NotesPianoReader):
+    def __init__(self, piano_name = PIANO_NAME, time_zero = None, keys_offset = 0, notes_dict:dict = None):
+        self.set_time_zero()
+        super().__init__(piano_name, keys_offset)
+        self._in_progress_notes: list[int, float, int] = []
+        self._played_notes: list[int,float,float, int] = []
+        self._new_notes_event = Event()
+        self._new_notes_event.clear()
+        self.correct_notes_dict = notes_dict
+        
+
+    def loop(self):
+        super().loop()
+        while self.notes_available():
+            print(score_note(self.correct_notes_dict, next(self.notes)))
+
 
     
 
@@ -317,6 +340,7 @@ if __name__ == '__main__':
     midi.attach_key_callback(80, lambda x:print("Key 80 pressed!"), edge = PRESSED)
     midi.attach_key_callback(80, lambda x:print("Key 80 released!"),edge = RELEASED)
     midi.attach_key_callback(81, lambda x:midi.remove_vol_knob_callback(l),edge = PRESSED)
+    midi.attach_key_callback(97, lambda x:midi._end(),edge = RELEASED)
     midi.begin()
 
     for i in midi.get_notes():

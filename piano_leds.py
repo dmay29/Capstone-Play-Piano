@@ -54,38 +54,31 @@ def dimmer(color, brightness):
 class LEDNote:
 
     def __init__(self, start_time, duration, parent_key: "PianoKeyLEDsRealTime"):
-        self.pixels_start_time = start_time - parent_key.fall_time
-        self.pixels_end_time = start_time + duration
-        self.num_pixels = parent_key.num_pixels
-        self.time_per_pixel = parent_key.time_per_pixel
-        self.width = duration / self.time_per_pixel
-        self.A = (2 / self.width) ** 4
-        self.B = 2 * (2 / self.width) ** 2
         self.parent_key = parent_key
 
-    @property
-    def pixel_array(self):
-        return self.parent_key.pixel_array
+        self.pixels_start_time = start_time - parent_key.fall_time # The pixels must start 'fall_time' before the note would hit the key
+        self.pixels_end_time = start_time + duration # pixels end 'duration' time after the note has hit the key
+        self.width = duration / self.parent_key.time_per_pixel
+        self.A = (2 / self.width) ** 4
+        self.B = 2 * (2 / self.width) ** 2
+        
 
     def in_range(self, now):
         return self.pixels_start_time < now < self.pixels_end_time
 
     def show(self, now):
-        start_pixel = (now - self.pixels_start_time) / self.time_per_pixel
-        for i in range(len(self.pixel_array)):
+        start_pixel = (now - self.pixels_start_time) / self.parent_key.time_per_pixel
+        # print(start_pixel)
+        for i in range(len(self.parent_key.pixel_array)):
             x = i - start_pixel + self.width / 2
             if -self.width / 2 < x < self.width / 2:
                 val = self.A * (x**4) - self.B * (x**2) + 1
-                self.pixel_array[i] = val
+                self.parent_key.pixel_array[i] = val
 
 
 class PianoKeyLEDsRealTime(RealTime):
     """
-    LED controller for one key,
-    Running begin starts a waterfall
-    Calling refresh recalculates the brigthness of each pixel based on the current time
-    Right now can only handle one falling pixel at time (starting a new fall would stop the previous)
-    Looks pretty fluid
+
     """
 
     def __init__(

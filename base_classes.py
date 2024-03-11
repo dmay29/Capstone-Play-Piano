@@ -1,5 +1,6 @@
 from time import time
 from threading import Thread
+from multiprocessing import Process, Event
 
 class RealTime:
 
@@ -35,27 +36,43 @@ class Threaded:
     thread: Thread = None
     running = False
 
-    def begin(self):
+    def begin(self, threaded = True, multithreaded = False):
         """ End any previous thread. Begin a new one """
-        self.end()
-        self.thread = Thread(target = self._run_loop)
-        self.running = True
-        self.thread.start()
+        self._end()
+        if threaded:
+            if multithreaded: 
+                self.thread = Process(target = self._run_loop)
+            else:
+                self.thread = Thread(target = self._run_loop)
+            self.running = True
+            self.thread.start()
+        else:
+            self.running = True
+            self._run_loop
 
-    def end(self):
+    def _end(self):
         """ End the thread if one is running """
         self.running = False
         if self.thread is not None:
-            self.thread.join()
+            if isinstance(self.thread, Process):
+                self.thread.terminate()
+            try:
+                self.thread.join()
+            except:
+                pass
 
     def close(self):
         """ End thread and close port """
-        self.end()
+        self._end()
 
     def _run_loop(self):
         """ Runs loop until canceled. Should only be run in a thread using .begin() """
+        prev = time()
         while self.running:
             self.loop()
+            # now = time()
+            # print(prev-now)
+            # prev = now
             
     def loop(self):
         """ The function that is looped """

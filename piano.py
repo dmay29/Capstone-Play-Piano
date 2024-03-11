@@ -1,6 +1,6 @@
 from piano_leds import PianoKeyLEDsRealTime, colors
 from midi_reader import extract_notes
-from base_classes import Threaded, RealTime
+from base_classes import Threaded, RealTime, Event
 
 from pathlib import Path
 import board
@@ -19,8 +19,14 @@ class PianoLEDsRealTime(RealTime, Threaded):
         self.pixels = neopixel.NeoPixel(board.D21, 127*5, brightness=0.5, auto_write=False)
         self.keys: dict[int, PianoKeyLEDsRealTime] = self.construct_piano()
         self.load_midi(midi_file, speed, note_offset)
-        
+        self.end_time = self.timing_dict['end']
+        self.song_over_event = Event()
+        self.song_over_event.clear()
+    
+    def song_over(self):
+        return self.time_since_zero > self.end_time
 
+    
     def load_midi(self, midi_file, speed, note_offset):
         self.midi_file: Path = Path(midi_file)
         self.timing_dict = extract_notes(self.midi_file, speed, note_offset)
@@ -30,12 +36,11 @@ class PianoLEDsRealTime(RealTime, Threaded):
 
     def loop(self):
         """ Threaded loop function/ Started by running piano.begin() """
+        now = self.now()
         self.refresh()
-    
-        if self.keys[self.note_offset].time_since_zero > 20:
-            now = self.now()
-            for key in self.keys.values():
-                key.set_time_zero()
+        prev = now
+        if self.song_over():
+            self.song_over_event.set()
 
     def refresh(self):
         for key in self.keys.values():
