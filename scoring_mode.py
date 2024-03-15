@@ -8,7 +8,7 @@ from base_classes import RealTime
 
 
 
-class TestingModePiano(NotesPianoReader):
+class ScoringModePiano(NotesPianoReader):
     
     def __init__(self, midi_file, speed, **kwargs):
         super().__init__(keys_offset=48)
@@ -30,7 +30,8 @@ class TestingModePiano(NotesPianoReader):
         # if self.leds.song_over():
         #     self.leds.end()
         #     self.end()
-    def getMaxScore(self):
+            
+    def max_score(self):
         return getMaxScore(self.leds.timing_dict)
 
     def close(self):
@@ -43,11 +44,11 @@ class TestingModePiano(NotesPianoReader):
 
 if __name__ == '__main__':
     # RealTime.now = lambda _: time()/5
-    piano = TestingModePiano("composer/sound_files/mary_little_lamb.mid", 2)
+    piano = ScoringModePiano("composer/sound_files/mary_little_lamb.mid", 2)
     
     piano.begin()
     piano.leds.song_over_event.wait()
-    print(f"Song complete\nScore: {piano.totalScore} / {piano.getMaxScore()}")
+    print(f"Song complete\nScore: {piano.totalScore} / {piano.max_score()}")
     piano.close()
 
     #score_note(piano.timing_dict, piano.get_notes())
