@@ -268,7 +268,6 @@ class NotesPianoReader(ControlPianoReader, RealTime):
         self._new_notes_event.clear()
         self._note_index = 0
 
-
     def read_note_msg(self, msg: Message, now = None):
         if now is None:
             now = self.time_since_zero

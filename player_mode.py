@@ -1,6 +1,4 @@
 from piano_reader import ControlPianoReader
-from piano import PianoLEDsRealTime
-from scoring import score_note, getMaxScore
 from speaker import set_volume
 from time import sleep
 import mido
