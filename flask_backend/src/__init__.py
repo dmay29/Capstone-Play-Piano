@@ -12,11 +12,13 @@ def create_app():
         return "<h1>PLAY PIANO</h1>"
 
     # Import the various routes
-    from src.key_input import key_input
-    from src.conductor import conductor
+    from src.keys import keys
+    # from src.metadata import metadata
+    from src.session_info import session_info
 
     # Register the routes that we just imported so they can be properly handled
-    app.register_blueprint(key_input, url_prefix='/keyinput')
-    app.register_blueprint(conductor, url_prefix='/conductor')
+    app.register_blueprint(keys, url_prefix='/k')
+    # app.register_blueprint(metadata, url_prefix='/md')
+    app.register_blueprint(session_info, url_prefix='/si')
 
     return app
